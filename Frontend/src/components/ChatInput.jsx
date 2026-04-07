@@ -4,7 +4,7 @@ import { Send } from 'lucide-react';
 export default function ChatInput({ onSend }) {
   const [text, setText] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
     if (text.trim()) {
       onSend(text.trim());

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
+import axios from 'axios'
 
 export default function ChatLayout() {
   const [messages, setMessages] = useState([]);
 
-  const handleSendMessage = (text) => {
+  const handleSendMessage = async(text) => {
     // Add user message immediately
     const newMessage = {
       id: Date.now(),
@@ -15,31 +16,50 @@ export default function ChatLayout() {
       judge: null,
       isLoading: true
     };
-    
+
+    // show the user message right away
     setMessages((prev) => [...prev, newMessage]);
 
-    // Simulate backend response
-    setTimeout(() => {
-      setMessages((prev) => 
-        prev.map(msg => {
+    try {
+      const response = await axios.post("http://localhost:3000/invoke", { input: text });
+      const data = response.data;
+      console.log(data);
+
+      const result = data?.result || data;
+
+      // update the message with real result
+      setMessages((prev) =>
+        prev.map((msg) => {
           if (msg.id === newMessage.id) {
             return {
               ...msg,
               isLoading: false,
-              solution_1: "Here is a clean implementation using `fetch`:\n\n```js\nfetch('https://api.example.com/data')\n  .then(res => res.json())\n  .then(data => console.log(data));\n```",
-              solution_2: "You can use `async/await` for better readability:\n\n```javascript\nasync function getData() {\n  const res = await fetch('https://api.example.com/data');\n  const data = await res.json();\n  console.log(data);\n}\n```",
-              judge: {
-                solution_1_score: 8,
-                solution_2_score: 10,
-                solution_1_reasoning: "Good basic solution but uses older Promise `.then` syntax.",
-                solution_2_reasoning: "Excellent readability using modern async/await."
-              }
+              problem: result.problem ?? msg.problem,
+              solution_1: result.solution_1 ?? msg.solution_1,
+              solution_2: result.solution_2 ?? msg.solution_2,
+              judge: result.judge ?? msg.judge
             };
           }
           return msg;
         })
       );
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === newMessage.id) {
+            return {
+              ...msg,
+              isLoading: false,
+              solution_1: "Error: failed to get solution from server.",
+              solution_2: "",
+              judge: null
+            };
+          }
+          return msg;
+        })
+      );
+    }
   };
 
   return (
@@ -47,8 +67,9 @@ export default function ChatLayout() {
       <main className="flex-1 overflow-y-auto w-full">
         <div className="max-w-6xl mx-auto py-12 px-4 space-y-12">
           {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full min-h-[50vh] text-slate-500">
-              <h1 className="text-3xl font-medium tracking-tight">How can I help you today?</h1>
+            <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-slate-500">
+              <h1 className="text-3xl font-medium tracking-tight">Welcome To Battle Arena</h1>
+              <p className='text-sm font-medium text-gray-600'>Type Your Problem below to see two AI solution go ahed-to-start</p>
             </div>
           ) : (
             messages.map((msg) => (
